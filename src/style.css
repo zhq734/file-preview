@@ -1,0 +1,105 @@
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+/* ── 亮色主题（默认） ── */
+:root {
+  --bg-app:       #f7f8fa;
+  --bg-base:      #ffffff;
+  --bg-subtle:    #fafafa;
+  --bg-muted:     #f6f8fa;
+  --bg-toolbar:   #ffffff;
+  --border:       #e8e8e8;
+  --border-muted: #eee;
+  --text-primary: #1a1a1a;
+  --text-secondary: #333;
+  --text-muted:   #666;
+  --text-faint:   #999;
+  --text-placeholder: #bbb;
+  --btn-bg:       #ffffff;
+  --btn-border:   #d9d9d9;
+  --btn-text:     #555;
+  --btn-hover-border: #1677ff;
+  --btn-hover-text:   #1677ff;
+  --code-bg:      #f6f8fa;
+  --code-text:    #24292e;
+  --table-head-bg: #f6f8fa;
+  --table-border: #d0d7de;
+  --table-stripe: #f6f8fa;
+  --shadow:       rgba(0,0,0,0.3);
+  --header-bg:    #fafafa;
+  /* 语法高亮色 - 亮色 */
+  --syn-key:      #905;       /* JSON key / XML attr-name */
+  --syn-str:      #c41a16;    /* 字符串值 */
+  --syn-num:      #1c00cf;    /* 数字 */
+  --syn-bool:     #0d22aa;    /* boolean */
+  --syn-null:     #808080;    /* null */
+  --syn-tag:      #881280;    /* XML tag name */
+  --syn-attr:     #994500;    /* XML attr name */
+  --syn-attrval:  #1a1aa6;    /* XML attr value */
+  --syn-punct:    #555;       /* 括号/冒号/逗号 */
+  --syn-comment:  #888;       /* 注释 */
+}
+
+/* ── 暗色主题 ── */
+[data-theme="dark"] {
+  --bg-app:       #141414;
+  --bg-base:      #1e1e1e;
+  --bg-subtle:    #252525;
+  --bg-muted:     #2a2a2a;
+  --bg-toolbar:   #252525;
+  --border:       #3a3a3a;
+  --border-muted: #333;
+  --text-primary: #e8e8e8;
+  --text-secondary: #d0d0d0;
+  --text-muted:   #aaa;
+  --text-faint:   #777;
+  --text-placeholder: #555;
+  --btn-bg:       #2a2a2a;
+  --btn-border:   #444;
+  --btn-text:     #bbb;
+  --btn-hover-border: #4096ff;
+  --btn-hover-text:   #4096ff;
+  --code-bg:      #2a2a2a;
+  --code-text:    #d0d0d0;
+  --table-head-bg: #2a2a2a;
+  --table-border: #3a3a3a;
+  --table-stripe: #252525;
+  --shadow:       rgba(0,0,0,0.6);
+  --header-bg:    #252525;
+  /* 语法高亮色 - 暗色（One Dark 风格，提高亮度） */
+  --syn-key:      #e06c75;    /* JSON key */
+  --syn-str:      #98c379;    /* 字符串值 */
+  --syn-num:      #d19a66;    /* 数字 */
+  --syn-bool:     #56b6c2;    /* boolean */
+  --syn-null:     #abb2bf;    /* null */
+  --syn-tag:      #e06c75;    /* XML tag name */
+  --syn-attr:     #d19a66;    /* XML attr name */
+  --syn-attrval:  #98c379;    /* XML attr value */
+  --syn-punct:    #abb2bf;    /* 括号/冒号/逗号 */
+  --syn-comment:  #7f848e;    /* 注释 */
+}
+
+/* ── 暗色主题下 highlight.js 覆盖（One Dark 风格，提高对比度） ── */
+[data-theme="dark"] .hljs {
+  background: var(--bg-muted);
+  color: #d0d0d0;
+}
+[data-theme="dark"] .hljs-keyword,
+[data-theme="dark"] .hljs-selector-tag,
+[data-theme="dark"] .hljs-operator { color: #c678dd; font-weight: 600; }
+[data-theme="dark"] .hljs-string,
+[data-theme="dark"] .hljs-attr { color: #98c379; }
+[data-theme="dark"] .hljs-number,
+[data-theme="dark"] .hljs-literal { color: #d19a66; }
+[data-theme="dark"] .hljs-comment { color: #7f848e; font-style: italic; }
+[data-theme="dark"] .hljs-title,
+[data-theme="dark"] .hljs-name { color: #61afef; font-weight: 600; }
+[data-theme="dark"] .hljs-type,
+[data-theme="dark"] .hljs-built_in { color: #e5c07b; }
+[data-theme="dark"] .hljs-variable,
+[data-theme="dark"] .hljs-template-variable { color: #e06c75; }
+[data-theme="dark"] .hljs-symbol,
+[data-theme="dark"] .hljs-bullet { color: #56b6c2; }
+[data-theme="dark"] .hljs-tag { color: #e06c75; }
+[data-theme="dark"] .hljs-attribute { color: #d19a66; }
+[data-theme="dark"] .hljs-meta { color: #abb2bf; }
