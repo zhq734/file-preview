@@ -51,7 +51,7 @@
         <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414A1 1 0 0 1 19 9.414V19a2 2 0 0 1-2 2z"/>
       </svg>
       <p>点击「打开文件」选择本地文件进行预览</p>
-      <p class="supported-types">支持：PDF · Word · Excel · PPT · TXT · MD · HTML · XML · JSON · YAML · Properties · SQL · Log · 图片 · 音频 · 视频 · 压缩包</p>
+      <p class="supported-types">支持：PDF · OFD · Word · Excel · PPT · TXT · OUT · MD · CSV · HTML · XML · JSON · YAML · Properties · SQL · Log · Java · Shell · Bat · JS · TS · CSS · Vue · 图片 · 音频 · 视频 · 压缩包</p>
       <p class="drag-tip">或直接将文件拖拽到页面</p>
     </div>
 
@@ -76,7 +76,8 @@ const ACCEPT = [
   '.doc,.docx',
   '.xls,.xlsx',
   '.ppt,.pptx',
-  '.txt,.md,.csv',
+  '.txt,.md,.csv,.out,.java,.sh,.bat,.js,.ts,.css,.vue',
+  '.ofd',
   '.log',
   '.sql',
   '.yml,.yaml',
@@ -155,7 +156,7 @@ const onDrop = (e: DragEvent) => {
 
 const ICON_MAP: Record<string, string> = {
   pdf: '📄', word: '📝', excel: '📊', ppt: '📋',
-  text: '📃', markdown: '📋', yaml: '📄', properties: '⚙️', log: '📋', sql: '🗄️',
+  text: '📃', csv: '📊', java: '☕', bash: '🖥️', dos: '🖥️', javascript: '📜', typescript: '📘', css: '🎨', vue: '💚', ofd: '📋', markdown: '📋', yaml: '📄', properties: '⚙️', log: '📋', sql: '🗄️',
   html: '🌐', xml: '📑', json: '{ }',
   image: '🖼️', audio: '🎵', video: '🎬', archive: '🗜️', unsupported: '📁',
 }

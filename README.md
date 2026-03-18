@@ -1,6 +1,6 @@
 # File Preview
 
-一个纯前端的本地文件预览工具，基于 Vue 3 + Vite 构建，无需后端服务，所有文件处理均在浏览器中完成。
+一个纯前端的本地文件预览工具，基于 Vue 3 + Vite 构建，能根据不同的文件格式用不同的组件进行特殊语法展示，无需后端服务，所有文件处理均在浏览器中完成。
 
 ## 功能特性
 
@@ -8,13 +8,13 @@
 
 | 类型 | 格式 |
 |------|------|
-| 文档 | PDF、Word（.docx）、Excel（.xlsx）、PPT（.pptx） |
-| 代码 | JSON、XML、SQL、HTML、YAML、Properties |
+| 文档 | PDF、Word（.docx）、Excel（.xlsx）、PPT（.pptx）、OFD |
+| 代码 | JSON、XML、SQL、HTML、YAML、Properties、JS/TS、CSS、Java、Shell |
 | 文本 | TXT、CSV、Markdown（.md） |
 | 日志 | .log |
 | 图片 | PNG、JPG、GIF、SVG、WebP、BMP |
 | 音视频 | MP3、WAV、OGG、FLAC、MP4、WebM、MOV 等 |
-| 压缩包 | ZIP、GZ、TGZ、TAR |
+| 压缩包 | ZIP、JAR、WAR、APK、GZ、TGZ、TAR |
 
 ### 核心功能
 
@@ -24,8 +24,9 @@
 - 支持在预览界面通过左右箭头切换文件，键盘 `←` `→` 也可切换
 
 **预览界面**
-- 全屏预览模式，点击工具栏按钮或按 `F` 键切换
+- 全屏预览模式，点击工具栏按钮或按 `F11` 键切换
 - 亮色 / 暗色主题切换，顶部工具栏一键切换
+- 内容搜索，点击工具栏搜索按钮或按 `Ctrl+F` 触发，支持关键词高亮、上下翻查
 
 **图片预览**
 - 缩放（滚轮 / 按钮 / `+` `-` 键）、旋转、水平翻转、拖拽平移
@@ -56,7 +57,6 @@
 ## 快速开始
 
 ```bash
-cd file-preview
 npm install
 npm run dev
 ```
@@ -73,14 +73,14 @@ npm run build
 |--------|------|
 | `←` / `→` | 切换上一个 / 下一个文件 |
 | `Esc` | 关闭预览 |
-| `F` | 切换全屏 |
+| `F11` | 切换全屏 |
+| `Ctrl+F` | 打开搜索 |
+| `Enter` / `Shift+Enter` | 搜索下一个 / 上一个 |
 | `+` / `-` | 图片放大 / 缩小 |
 | `R` | 图片向右旋转 |
 | `0` | 图片重置变换 |
 
 ## 截图
-
-> 将截图放在 `docs/screenshots/` 目录下，并替换下方路径。
 
 | 主页（亮色） | 主页（暗色） |
 |---|---|
@@ -106,8 +106,9 @@ npm run build
 
 - [Vue 3](https://vuejs.org/) + TypeScript
 - [Vite](https://vitejs.dev/)
-- [mammoth.js](https://github.com/mwilliamson/mammoth.js) — Word 文档转 HTML
+- [docx-preview](https://github.com/VolodymyrBaydalka/docx-preview) — Word 文档渲染
 - [pptx-preview](https://github.com/meshesha/pptx-preview) — PPT 渲染
+- [ofd-tools](https://github.com/DLillard0/ofd-tools) / [ofd-view](https://github.com/DLillard0/ofd-view) — OFD 渲染
 - [highlight.js](https://highlightjs.org/) — 代码语法高亮
 - [marked](https://marked.js.org/) — Markdown 渲染
 - [@zip.js/zip.js](https://gildas-lormeau.github.io/zip.js/) — ZIP 解析

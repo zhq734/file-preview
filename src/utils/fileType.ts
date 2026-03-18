@@ -15,6 +15,15 @@ export type FileCategory =
   | 'image'
   | 'audio'
   | 'video'
+  | 'csv'
+  | 'java'
+  | 'bash'
+  | 'dos'
+  | 'javascript'
+  | 'typescript'
+  | 'css'
+  | 'vue'
+  | 'ofd'
   | 'archive'
   | 'unsupported'
 
@@ -23,7 +32,16 @@ const EXT_MAP: Record<string, FileCategory> = {
   doc: 'word', docx: 'word',
   xls: 'excel', xlsx: 'excel',
   ppt: 'ppt', pptx: 'ppt',
-  txt: 'text', csv: 'text',
+  txt: 'text', out: 'text',
+  csv: 'csv',
+  java: 'java',
+  sh: 'bash',
+  bat: 'dos',
+  js: 'javascript', mjs: 'javascript', cjs: 'javascript',
+  ts: 'typescript',
+  css: 'css',
+  vue: 'vue',
+  ofd: 'ofd',
   md: 'markdown',
   yml: 'yaml', yaml: 'yaml',
   properties: 'properties',
