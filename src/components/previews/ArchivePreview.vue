@@ -31,22 +31,13 @@
           <div class="pane-body">
             <div v-if="entryLoading" class="status-tip">加载中...</div>
             <div v-else-if="entryError" class="status-tip error">{{ entryError }}</div>
-            <div v-else-if="entryCategory === 'image'" class="img-wrap">
-              <img :src="entryBlobUrl" :alt="selectedEntry.path" />
-            </div>
-            <div v-else-if="entryCategory === 'audio'" class="media-wrap">
-              <audio :src="entryBlobUrl" controls />
-            </div>
-            <div v-else-if="entryCategory === 'video'" class="media-wrap video">
-              <video :src="entryBlobUrl" controls />
-            </div>
-            <iframe v-else-if="entryCategory === 'pdf'" :src="entryBlobUrl" class="iframe-preview" />
-            <div v-else-if="entryCategory === 'log'" class="log-pane">
-              <LogViewer :text="entryText ?? ''" />
-            </div>
-            <div v-else-if="entryText !== null" class="code-wrap">
-              <pre class="code-content" v-html="entryHighlighted || escapeHtml(entryText)" />
-            </div>
+            <component
+              v-else-if="entryComponent && entryFile"
+              :is="entryComponent"
+              :file="entryFile"
+              :language="entryLanguage"
+              :key="selectedEntry!.path"
+            />
             <div v-else class="unsupported-entry">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
                 <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414A1 1 0 0 1 19 9.414V19a2 2 0 0 1-2 2z"/>
@@ -67,31 +58,46 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, defineAsyncComponent } from 'vue'
 import ArchiveTreeNode from './ArchiveTreeNode.vue'
-import LogViewer from './LogViewer.vue'
 import { getFileCategory } from '../../utils/fileType'
-import hljs from 'highlight.js/lib/core'
-import json from 'highlight.js/lib/languages/json'
-import xml from 'highlight.js/lib/languages/xml'
-import javascript from 'highlight.js/lib/languages/javascript'
-import typescript from 'highlight.js/lib/languages/typescript'
-import python from 'highlight.js/lib/languages/python'
-import java from 'highlight.js/lib/languages/java'
-import css from 'highlight.js/lib/languages/css'
-import sql from 'highlight.js/lib/languages/sql'
-import bash from 'highlight.js/lib/languages/bash'
-import 'highlight.js/styles/github.css'
 
-hljs.registerLanguage('json', json)
-hljs.registerLanguage('xml', xml)
-hljs.registerLanguage('javascript', javascript)
-hljs.registerLanguage('typescript', typescript)
-hljs.registerLanguage('python', python)
-hljs.registerLanguage('java', java)
-hljs.registerLanguage('css', css)
-hljs.registerLanguage('sql', sql)
-hljs.registerLanguage('bash', bash)
+// 复用已有的各类预览组件
+const COMPONENT_MAP: Record<string, ReturnType<typeof defineAsyncComponent>> = {
+  pdf:        defineAsyncComponent(() => import('./PdfPreview.vue')),
+  word:       defineAsyncComponent(() => import('./WordPreview.vue')),
+  excel:      defineAsyncComponent(() => import('./ExcelPreview.vue')),
+  ppt:        defineAsyncComponent(() => import('./PptPreview.vue')),
+  text:       defineAsyncComponent(() => import('./TextPreview.vue')),
+  csv:        defineAsyncComponent(() => import('./CsvPreview.vue')),
+  java:       defineAsyncComponent(() => import('./CodePreview.vue')),
+  bash:       defineAsyncComponent(() => import('./CodePreview.vue')),
+  dos:        defineAsyncComponent(() => import('./CodePreview.vue')),
+  javascript: defineAsyncComponent(() => import('./CodePreview.vue')),
+  typescript: defineAsyncComponent(() => import('./CodePreview.vue')),
+  css:        defineAsyncComponent(() => import('./CodePreview.vue')),
+  vue:        defineAsyncComponent(() => import('./CodePreview.vue')),
+  ofd:        defineAsyncComponent(() => import('./OfdPreview.vue')),
+  markdown:   defineAsyncComponent(() => import('./MarkdownPreview.vue')),
+  yaml:       defineAsyncComponent(() => import('./YamlPreview.vue')),
+  properties: defineAsyncComponent(() => import('./PropertiesPreview.vue')),
+  log:        defineAsyncComponent(() => import('./LogPreview.vue')),
+  sql:        defineAsyncComponent(() => import('./SqlPreview.vue')),
+  html:       defineAsyncComponent(() => import('./HtmlPreview.vue')),
+  xml:        defineAsyncComponent(() => import('./XmlPreview.vue')),
+  json:       defineAsyncComponent(() => import('./JsonPreview.vue')),
+  image:      defineAsyncComponent(() => import('./ImagePreview.vue')),
+  audio:      defineAsyncComponent(() => import('./AudioPreview.vue')),
+  video:      defineAsyncComponent(() => import('./VideoPreview.vue')),
+  class:      defineAsyncComponent(() => import('./ClassPreview.vue')),
+  metafile:   defineAsyncComponent(() => import('./MetafilePreview.vue')),
+  heic:       defineAsyncComponent(() => import('./HeicPreview.vue')),
+}
+
+const LANGUAGE_MAP: Record<string, string> = {
+  java: 'java', bash: 'bash', dos: 'dos',
+  javascript: 'javascript', typescript: 'typescript', css: 'css', vue: 'xml',
+}
 
 export interface ArchiveEntry {
   path: string
@@ -120,13 +126,16 @@ const tree = ref<TreeNode[]>([])
 const selectedEntry = ref<ArchiveEntry | null>(null)
 const entryLoading = ref(false)
 const entryError = ref('')
-const entryBlobUrl = ref('')
-const entryText = ref<string | null>(null)
-const entryHighlighted = ref('')
-const blobUrls: string[] = []
+const entryFile = ref<File | null>(null)
 
 const entryCategory = computed(() =>
   selectedEntry.value ? getFileCategory(selectedEntry.value.name) : ''
+)
+const entryComponent = computed(() =>
+  entryCategory.value ? (COMPONENT_MAP[entryCategory.value] ?? null) : null
+)
+const entryLanguage = computed(() =>
+  entryCategory.value ? (LANGUAGE_MAP[entryCategory.value] ?? '') : ''
 )
 
 // ── 修复后的 buildTree ──────────────────────────────────────────
@@ -244,6 +253,26 @@ function parseTar(data: Uint8Array, entries: ArchiveEntry[]) {
   }
 }
 
+// ── ZIP 文件名编码修复 ─────────────────────────────────────────
+// ZIP 规范中 bit 11 标记 UTF-8，但很多工具（包括 macOS Archive Utility）
+// 打包 UTF-8 文件名时不设该标志位，导致 filenameUTF8 === false 不可靠。
+// 策略：先尝试严格 UTF-8 解码 rawFilename，若成功则用 UTF-8 结果；
+//       若解码失败（包含非法字节序列）则说明是 GBK，再用 GBK 解码。
+function decodeZipFilename(entry: { filename: string; filenameUTF8: boolean; rawFilename: Uint8Array }): string {
+  if (entry.filenameUTF8) return entry.filename
+  try {
+    // fatal: true 遇到非法 UTF-8 字节会抛异常
+    return new TextDecoder('utf-8', { fatal: true }).decode(entry.rawFilename)
+  } catch {
+    // UTF-8 解码失败，说明是 GBK 编码（Windows 旧版压缩工具）
+    try {
+      return new TextDecoder('gbk').decode(entry.rawFilename)
+    } catch {
+      return entry.filename
+    }
+  }
+}
+
 // ── 解析压缩包（先 yield 让 loading UI 渲染，再执行解析）──────
 async function parseArchive() {
   loading.value = true
@@ -261,9 +290,12 @@ async function parseArchive() {
       const reader = new ZipReader(new BlobReader(props.file))
       const zipEntries = await reader.getEntries()
       for (const e of zipEntries) {
+        // 当 ZIP entry 未设置 UTF-8 标志位时，用 GBK 解码原始文件名字节
+        // 这是 Windows 下用旧版压缩工具打包中文文件名的常见情况
+        const filename = decodeZipFilename(e)
         entries.push({
-          path: e.filename,
-          name: e.filename.replace(/\/$/, '').split('/').pop() ?? e.filename,
+          path: filename,
+          name: filename.replace(/\/$/, '').split('/').pop() ?? filename,
           isDir: e.directory,
           size: e.uncompressedSize,
           getData: e.directory ? undefined : async () => {
@@ -314,59 +346,16 @@ async function onSelectEntry(entry: ArchiveEntry) {
   selectedEntry.value = entry
   entryLoading.value = true
   entryError.value = ''
-  entryText.value = null
-  entryHighlighted.value = ''
-
-  if (entryBlobUrl.value) {
-    URL.revokeObjectURL(entryBlobUrl.value)
-    entryBlobUrl.value = ''
-  }
+  entryFile.value = null
 
   try {
     const data = await entry.getData()
-    const cat = getFileCategory(entry.name)
-
-    if (['image', 'audio', 'video', 'pdf'].includes(cat)) {
-      const url = URL.createObjectURL(new Blob([data]))
-      blobUrls.push(url)
-      entryBlobUrl.value = url
-    } else {
-      // 超过 500KB 的文本截断显示，避免 v-html 渲染卡顿
-      const MAX = 512 * 1024
-      const slice = data.length > MAX ? data.slice(0, MAX) : data
-      const text = new TextDecoder('utf-8').decode(slice)
-      entryText.value = data.length > MAX ? text + '\n\n... (文件过大，仅显示前 512KB)' : text
-      entryHighlighted.value = tryHighlight(entry.name, entryText.value)
-    }
+    entryFile.value = new File([data], entry.name)
   } catch (e) {
     entryError.value = '读取失败：' + (e as Error).message
   } finally {
     entryLoading.value = false
   }
-}
-
-const LANG_MAP: Record<string, string> = {
-  js: 'javascript', ts: 'typescript', jsx: 'javascript', tsx: 'typescript',
-  json: 'json', xml: 'xml', html: 'xml', htm: 'xml', svg: 'xml',
-  py: 'python', java: 'java', css: 'css', scss: 'css', less: 'css',
-  sql: 'sql', sh: 'bash', bash: 'bash',
-}
-
-function tryHighlight(filename: string, text: string): string {
-  const ext = filename.split('.').pop()?.toLowerCase() ?? ''
-  const lang = LANG_MAP[ext]
-  if (!lang) return ''
-  try {
-    // 超过 200KB 不高亮，避免卡顿
-    if (text.length > 200 * 1024) return ''
-    return hljs.highlight(text, { language: lang }).value
-  } catch {
-    return ''
-  }
-}
-
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 function formatSize(bytes: number): string {
@@ -375,7 +364,7 @@ function formatSize(bytes: number): string {
   return (bytes / 1024 / 1024).toFixed(1) + ' MB'
 }
 
-onUnmounted(() => { blobUrls.forEach(u => URL.revokeObjectURL(u)) })
+onUnmounted(() => {})
 
 parseArchive()
 </script>
@@ -406,19 +395,6 @@ parseArchive()
 .entry-path { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .entry-size { font-size: 12px; color: var(--text-faint); flex-shrink: 0; margin-left: 8px; }
 .pane-body { flex: 1; overflow: auto; }
-
-.img-wrap { display: flex; justify-content: center; padding: 16px; }
-.img-wrap img { max-width: 100%; object-fit: contain; }
-
-.media-wrap { display: flex; justify-content: center; align-items: center; height: 100%; padding: 16px; }
-.media-wrap audio { width: 400px; max-width: 90%; }
-.media-wrap.video video { max-width: 100%; max-height: 100%; }
-
-.iframe-preview { width: 100%; height: 100%; border: none; }
-
-.code-wrap { width: 100%; height: 100%; overflow: auto; padding: 16px; box-sizing: border-box; }
-.log-pane { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
-.code-content { margin: 0; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; color: var(--text-secondary); }
 
 .empty-pane, .unsupported-entry {
   display: flex; flex-direction: column; align-items: center;

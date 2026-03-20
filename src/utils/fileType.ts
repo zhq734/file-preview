@@ -25,6 +25,9 @@ export type FileCategory =
   | 'vue'
   | 'ofd'
   | 'archive'
+  | 'class'
+  | 'metafile'
+  | 'heic'
   | 'unsupported'
 
 const EXT_MAP: Record<string, FileCategory> = {
@@ -54,6 +57,9 @@ const EXT_MAP: Record<string, FileCategory> = {
   mp3: 'audio', wav: 'audio', ogg: 'audio', flac: 'audio', aac: 'audio',
   mp4: 'video', webm: 'video', ogv: 'video', mov: 'video', avi: 'video',
   zip: 'archive', rar: 'archive', '7z': 'archive', tar: 'archive', gz: 'archive', tgz: 'archive',
+  class: 'class',
+  emf: 'metafile', wmf: 'metafile',
+  heic: 'heic', heif: 'heic',
 }
 
 export function getFileCategory(filename: string): FileCategory {

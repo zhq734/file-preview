@@ -15,6 +15,10 @@
         <button v-if="searchable" class="nav-btn" @click="toggleSearch" :title="searchVisible ? '关闭搜索 (Ctrl+F)' : '搜索 (Ctrl+F)'" :class="{ active: searchVisible }">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         </button>
+        <!-- 下载按钮 -->
+        <button class="nav-btn" @click="downloadFile" title="下载文件">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
         <button class="nav-btn" @click="toggleFullscreen" :title="isFullscreen ? '退出全屏 (F11)' : '全屏预览 (F11)'">
           <svg v-if="!isFullscreen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
           <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
@@ -76,6 +80,15 @@ const emit = defineEmits<{
 const close = () => emit('close')
 const isFullscreen = ref(false)
 const toggleFullscreen = () => { isFullscreen.value = !isFullscreen.value }
+
+function downloadFile() {
+  if (!props.file) return
+  const url = URL.createObjectURL(props.file)
+  const a = document.createElement('a')
+  a.href = url; a.download = props.file.name
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 const currentIndex = computed(() =>
   props.file ? props.files.findIndex(f => f === props.file) : -1
@@ -232,8 +245,24 @@ function closeSearch() {
   matchIndex.value = 0
 }
 
-// 切换文件时清除搜索
-watch(() => props.file, () => closeSearch())
+// 切换文件或重新打开预览时，重新执行搜索
+watch(() => props.file, async () => {
+  batchId++
+  clearMarks()
+  matchTotal.value = 0
+  matchIndex.value = 0
+  if (searchQuery.value.trim()) {
+    await nextTick()
+    setTimeout(doSearch, 300)
+  }
+})
+
+watch(() => props.visible, async (v) => {
+  if (v && searchQuery.value.trim()) {
+    await nextTick()
+    setTimeout(doSearch, 300)
+  }
+})
 
 // ── 键盘 ──────────────────────────────────────────────
 function onKeydown(e: KeyboardEvent) {
@@ -282,6 +311,9 @@ const COMPONENT_MAP: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   audio:      defineAsyncComponent(() => import('./previews/AudioPreview.vue')),
   video:      defineAsyncComponent(() => import('./previews/VideoPreview.vue')),
   archive:    defineAsyncComponent(() => import('./previews/ArchivePreview.vue')),
+  class:      defineAsyncComponent(() => import('./previews/ClassPreview.vue')),
+  metafile:   defineAsyncComponent(() => import('./previews/MetafilePreview.vue')),
+  heic:       defineAsyncComponent(() => import('./previews/HeicPreview.vue')),
 }
 
 const previewComponent = computed(() => {
@@ -392,12 +424,23 @@ const fileLanguage = computed(() => {
 /* 搜索高亮（全局，作用于子组件内容） */
 mark.search-highlight {
   background: #ffe58f;
-  color: inherit;
+  color: #000;
   border-radius: 2px;
   padding: 0;
 }
 mark.search-highlight-active {
   background: #ff9f1a;
+  color: #000;
   outline: 2px solid #ff9f1a;
+}
+
+[data-theme="dark"] mark.search-highlight {
+  background: #7c6200;
+  color: #fff;
+}
+[data-theme="dark"] mark.search-highlight-active {
+  background: #e6a817;
+  color: #000;
+  outline-color: #e6a817;
 }
 </style>

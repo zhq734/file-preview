@@ -18,12 +18,13 @@
           v-model="filterText"
           class="filter-input"
           placeholder="输入关键词过滤..."
+          @input="onFilterInput"
         />
         <span class="row-count">{{ filteredRows.length }} / {{ dataRows.length }} 行</span>
         <button v-if="filterText || sortCol !== null" class="clear-btn" @click="clearFilter">重置</button>
       </div>
-      <!-- Table -->
-      <div class="table-wrap">
+      <!-- Virtual table -->
+      <div class="table-wrap" ref="scrollEl" @scroll.passive="onScroll">
         <table>
           <thead>
             <tr>
@@ -44,9 +45,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(row, ri) in filteredRows" :key="ri">
+            <!-- 顶部占位 -->
+            <tr v-if="visibleStart > 0" :style="{ height: visibleStart * ROW_H + 'px' }"><td :colspan="headers.length || 1" /></tr>
+            <tr v-for="(row, ri) in visibleRows" :key="visibleStart + ri">
               <td v-for="(cell, ci) in row" :key="ci">{{ cell }}</td>
             </tr>
+            <!-- 底部占位 -->
+            <tr v-if="visibleEnd < filteredRows.length" :style="{ height: (filteredRows.length - visibleEnd) * ROW_H + 'px' }"><td :colspan="headers.length || 1" /></tr>
             <tr v-if="filteredRows.length === 0">
               <td :colspan="headers.length" class="empty">无匹配数据</td>
             </tr>
@@ -58,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { readFileAsArrayBuffer } from '../../utils/fileType'
 
 const props = defineProps<{ file: File }>()
@@ -66,19 +71,33 @@ const loading = ref(true)
 const error = ref('')
 const sheetNames = ref<string[]>([])
 const activeSheet = ref('')
-const sheetsData = ref<Record<string, string[][]>>({})
+
+// 只缓存已解析过的 sheet，按需解析
+const sheetsCache = ref<Record<string, string[][]>>({})
+const sheetLoading = ref(false)
+
+// workbook 实例复用
+let wb: import('xlsx').WorkBook | null = null
 
 const filterText = ref('')
 const sortCol = ref<number | null>(null)
 const sortDir = ref<'asc' | 'desc'>('asc')
 
-const currentData = computed(() => sheetsData.value[activeSheet.value] ?? [])
+const currentData = computed(() => sheetsCache.value[activeSheet.value] ?? [])
 const headers = computed(() => currentData.value[0] ?? [])
 const dataRows = computed(() => currentData.value.slice(1))
 
+// 过滤 + 排序，用 filterText 防抖后的值驱动
+const debouncedFilter = ref('')
+let filterTimer: ReturnType<typeof setTimeout> | null = null
+function onFilterInput() {
+  if (filterTimer) clearTimeout(filterTimer)
+  filterTimer = setTimeout(() => { debouncedFilter.value = filterText.value }, 200)
+}
+
 const filteredRows = computed(() => {
   let rows = dataRows.value
-  const kw = filterText.value.trim().toLowerCase()
+  const kw = debouncedFilter.value.trim().toLowerCase()
   if (kw) {
     rows = rows.filter(row => row.some(cell => String(cell).toLowerCase().includes(kw)))
   }
@@ -86,8 +105,7 @@ const filteredRows = computed(() => {
     const col = sortCol.value
     const dir = sortDir.value
     rows = [...rows].sort((a, b) => {
-      const av = a[col] ?? ''
-      const bv = b[col] ?? ''
+      const av = a[col] ?? '', bv = b[col] ?? ''
       const an = Number(av), bn = Number(bv)
       const cmp = (!isNaN(an) && !isNaN(bn)) ? an - bn : String(av).localeCompare(String(bv), 'zh')
       return dir === 'asc' ? cmp : -cmp
@@ -95,6 +113,38 @@ const filteredRows = computed(() => {
   }
   return rows
 })
+
+// ── 虚拟滚动 ──────────────────────────────────────────────────
+const ROW_H = 28          // 每行高度 px（与 CSS 保持一致）
+const OVERSCAN = 10       // 上下各多渲染几行，避免快速滚动白屏
+const scrollEl = ref<HTMLElement | null>(null)
+const scrollTop = ref(0)
+const viewportH = ref(600)
+
+const visibleStart = computed(() => Math.max(0, Math.floor(scrollTop.value / ROW_H) - OVERSCAN))
+const visibleEnd = computed(() => Math.min(filteredRows.value.length, Math.ceil((scrollTop.value + viewportH.value) / ROW_H) + OVERSCAN))
+const visibleRows = computed(() => filteredRows.value.slice(visibleStart.value, visibleEnd.value))
+
+function onScroll() {
+  if (scrollEl.value) scrollTop.value = scrollEl.value.scrollTop
+}
+
+// 过滤/排序变化后重置滚动位置
+watch(filteredRows, () => {
+  scrollTop.value = 0
+  nextTick(() => { if (scrollEl.value) scrollEl.value.scrollTop = 0 })
+})
+
+// ── 按需解析 sheet ─────────────────────────────────────────────
+async function parseSheet(name: string) {
+  if (sheetsCache.value[name] || !wb) return
+  sheetLoading.value = true
+  await new Promise(r => setTimeout(r, 0)) // 让 loading 先渲染
+  const XLSX = await import('xlsx')
+  const ws = wb.Sheets[name]
+  sheetsCache.value[name] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as string[][]
+  sheetLoading.value = false
+}
 
 function toggleSort(ci: number) {
   if (sortCol.value === ci) {
@@ -107,30 +157,38 @@ function toggleSort(ci: number) {
 
 function clearFilter() {
   filterText.value = ''
+  debouncedFilter.value = ''
   sortCol.value = null
   sortDir.value = 'asc'
 }
 
-function switchSheet(name: string) {
+async function switchSheet(name: string) {
   activeSheet.value = name
   clearFilter()
+  await parseSheet(name)
+  // 更新 viewport 高度
+  nextTick(() => {
+    if (scrollEl.value) viewportH.value = scrollEl.value.clientHeight
+  })
 }
 
 onMounted(async () => {
   try {
     const buffer = await readFileAsArrayBuffer(props.file)
     const XLSX = await import('xlsx')
-    const wb = XLSX.read(buffer, { type: 'array' })
+    // dense: true 让 sheet_to_json 更快；cellFormula: false 跳过公式解析
+    wb = XLSX.read(buffer, { type: 'array', dense: true, cellFormula: false, cellHTML: false })
     sheetNames.value = wb.SheetNames
     activeSheet.value = wb.SheetNames[0]
-    for (const name of wb.SheetNames) {
-      const ws = wb.Sheets[name]
-      sheetsData.value[name] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as string[][]
-    }
+    // 只解析第一个 sheet
+    await parseSheet(wb.SheetNames[0])
   } catch (e) {
     error.value = '表格解析失败：' + (e as Error).message
   } finally {
     loading.value = false
+    nextTick(() => {
+      if (scrollEl.value) viewportH.value = scrollEl.value.clientHeight
+    })
   }
 })
 </script>
@@ -152,8 +210,7 @@ onMounted(async () => {
 .filter-input {
   flex: 1; max-width: 280px;
   padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px;
-  font-size: 13px; background: var(--bg-subtle); color: var(--text-secondary);
-  outline: none;
+  font-size: 13px; background: var(--bg-subtle); color: var(--text-secondary); outline: none;
 }
 .filter-input:focus { border-color: #1677ff; }
 .row-count { font-size: 12px; color: var(--text-faint); white-space: nowrap; }
@@ -179,7 +236,11 @@ th.asc, th.desc { color: #1677ff; }
   display: flex; align-items: center; color: var(--text-faint);
 }
 th.asc .sort-icon, th.desc .sort-icon { color: #1677ff; }
-td { border: 1px solid var(--border-muted); padding: 4px 8px; white-space: nowrap; min-width: 60px; color: var(--text-secondary); }
+td {
+  border: 1px solid var(--border-muted); padding: 4px 8px;
+  white-space: nowrap; min-width: 60px; height: 28px;
+  color: var(--text-secondary); box-sizing: border-box;
+}
 tr:nth-child(even) td { background: var(--bg-subtle); }
 td.empty { text-align: center; color: var(--text-faint); padding: 24px; }
 .loading, .error { padding: 32px; text-align: center; color: var(--text-muted); }
